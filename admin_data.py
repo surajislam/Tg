@@ -5,7 +5,7 @@ import uuid
 import time
 
 # --- CONFIGURATION ---
-# CRITICAL FIX: Database file location changed to the writeable /tmp/ directory.
+# CRITICAL FIX (MANDATORY FOR DEPLOYMENT): Database file location must be in the writeable /tmp/ directory.
 DB_FILE = '/tmp/admin_data.json'
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD = 'admin123' 
@@ -29,7 +29,6 @@ class AdminDB:
 
     def _load_data(self):
         # Ensure the parent directory (/tmp/) exists.
-        # This resolves the deployment crash issue (Application exited with code 0).
         os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
         
         if not os.path.exists(DB_FILE):
