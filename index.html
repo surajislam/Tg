@@ -12,7 +12,590 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "your_strong_default_secret_
 
 # Database paths (assuming they are in the root directory)
 ADMIN_DB_FILE = 'admin_database.json'
-SEARCHED_DB_FILE = 'searched_usernames.json'
+SEARCHED_DB_FILE = 'searched_u<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#0D1421">
+    <meta name="msapplication-TileColor" content="#0D1421">
+    <meta name="apple-mobile-web-app-title" content="Telegram Search Pro">
+    <meta name="application-name" content="Telegram Search Pro">
+    <title>Telegram Search Pro - Dashboard</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #1a1a2e 75%, #0f0f23 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 107, 107, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(64, 224, 208, 0.05) 0%, transparent 50%);
+            z-index: -1;
+            animation: backgroundShift 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 20px;
+            border: 1px solid rgba(64, 224, 208, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #40e0d0 0%, #ff6b6b 50%, #7b68ee 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { filter: drop-shadow(0 0 10px rgba(64, 224, 208, 0.3)); }
+            to { filter: drop-shadow(0 0 20px rgba(255, 107, 107, 0.5)); }
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .user-greeting {
+            color: #40e0d0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .balance-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .balance-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(64, 224, 208, 0.1);
+            padding: 12px 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(64, 224, 208, 0.3);
+        }
+
+        .balance-amount {
+            color: #40e0d0;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .content {
+            margin-bottom: 40px;
+        }
+
+        .search-section {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(64, 224, 208, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .search-section:hover {
+            border-color: rgba(64, 224, 208, 0.5);
+            box-shadow: 0 10px 40px rgba(64, 224, 208, 0.1);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .section-icon {
+            font-size: 24px;
+        }
+
+        .section-title span:nth-child(2) {
+            font-size: 20px;
+            font-weight: 700;
+            color: #40e0d0;
+        }
+
+        .pricing-badge {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #40e0d0;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(15, 15, 35, 0.8);
+            border: 2px solid rgba(64, 224, 208, 0.3);
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #40e0d0;
+            box-shadow: 0 0 20px rgba(64, 224, 208, 0.3);
+            background: rgba(15, 15, 35, 0.9);
+        }
+
+        .search-input::placeholder {
+            color: rgba(148, 163, 184, 0.7);
+        }
+
+        .search-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #40e0d0 0%, #48cc8c 100%);
+            color: #0f1419;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(64, 224, 208, 0.4);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(64, 224, 208, 0.3);
+            backdrop-filter: blur(10px);
+            margin-top: 30px;
+            animation: slideInUp 0.5s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #40e0d0;
+        }
+
+        .result-item {
+            background: rgba(15, 15, 35, 0.6);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .result-item:hover {
+            border-color: rgba(64, 224, 208, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .result-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .result-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-label {
+            color: #94a3b8;
+            min-width: 120px;
+        }
+
+        .result-value {
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .phone-number {
+            color: #40e0d0;
+            font-weight: 700;
+            font-family: 'Monaco', monospace;
+        }
+
+        .show-details-btn {
+            background: linear-gradient(135deg, #48cc8c 0%, #34d399 100%);
+            color: #0f1419;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .show-details-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(72, 204, 140, 0.3);
+        }
+
+        .mobile-details {
+            background: rgba(42, 42, 74, 0.4);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: all 0.4s ease;
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+            line-height: 1.4;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mobile-details.show {
+            max-height: 600px;
+            opacity: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .mobile-details * {
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .error-message {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            border-radius: 12px;
+            color: #f87171;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .success-message {
+            background: rgba(72, 204, 140, 0.1);
+            border: 1px solid rgba(72, 204, 140, 0.3);
+            border-radius: 12px;
+            color: #48cc8c;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #40e0d0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(64, 224, 208, 0.3);
+            border-top: 3px solid #40e0d0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .logout-btn {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(248, 113, 113, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .search-section {
+                padding: 20px;
+            }
+
+            .balance-display {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .section-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .pricing-badge {
+                margin-left: 0;
+                align-self: flex-start;
+            }
+
+            .user-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .search-input, .search-btn {
+                font-size: 14px;
+            }
+
+            .results {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Telegram Search Pro</h1>
+            <p>Advanced Username Search with Phone Details</p>
+
+            <div class="user-info">
+                <div class="user-greeting">Welcome, {{ user_name }}!</div>
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+
+            <div class="balance-display">
+                <div class="balance-info">
+                    <span class="balance-icon">💰</span>
+                    <span>Current Balance:</span>
+                    <span class="balance-amount">₹<span id="current-balance">{{ balance }}</span></span>
+                </div>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                    <button onclick="openDepositModal()" style="background: linear-gradient(135deg, #48cc8c 0%, #34d399 100%); color: #0f1419; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 700; cursor: pointer; transition: all 0.3s ease;">
+                        💳 Add Balance
+                    </button>
+                    <button onclick="openApiModal()" style="background: linear-gradient(135deg, #7b68ee 0%, #ff6b6b 100%); color: white; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 700; cursor: pointer; transition: all 0.3s ease;">
+                        🚀 Buy API from Developer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Username Search Section -->
+            <div class="search-section">
+                <div class="section-title">
+                    <span class="section-icon">🔍</span>
+                    <span>Username Search</span>
+                    <span class="pricing-badge">₹30 per search</span>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">
+                        <span>👤</span>
+                        <span>Telegram Username</span>
+                    </label>
+                    <input type="text" id="username-input" class="search-input" placeholder="Enter username (with or without @)" autocomplete="off">
+                </div>
+
+                <button onclick="searchUsername()" class="search-btn" id="search-btn">
+                    🔍 Search Username
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" style="display: none;"></div>
+    </div>
+
+    <!-- API Information Modal -->
+    <div id="apiModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1001; backdrop-filter: blur(5px);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 46, 0.95); border: 1px solid rgba(123, 104, 238, 0.3); border-radius: 20px; padding: 30px; max-width: 500px; width: 95%; backdrop-filter: blur(20px);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 style="color: #7b68ee; font-size: 20px; font-weight: 700;">🚀 API Services</h3>
+                <button onclick="closeApiModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; padding: 5px;">×</button>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 25px;">
+                <div style="color: #7b68ee; font-size: 24px; margin-bottom: 15px;">⚡ Unlimited Search API</div>
+                <div style="color: #e2e8f0; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                    Get unlimited access to our Telegram search API for a specific time period at cheap prices!
+                </div>
+
+                <div style="background: rgba(123, 104, 238, 0.1); border: 1px solid rgba(123, 104, 238, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <div style="color: #7b68ee; font-weight: 700; margin-bottom: 10px;">🎯 What is API?</div>
+                    <div style="color: #94a3b8; font-size: 14px; line-height: 1.5;">
+                        API allows you to integrate our search functionality directly into your own applications. Perfect for bulk searches, automated systems, or building your own services on top of our data.
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: rgba(15, 15, 35, 0.8); border: 1px solid rgba(123, 104, 238, 0.3); border-radius: 10px; padding: 15px;">
+                        <div style="color: #7b68ee; font-weight: 700;">✅ Benefits</div>
+                        <div style="color: #94a3b8; font-size: 12px;">Unlimited searches</div>
+                        <div style="color: #94a3b8; font-size: 12px;">Bulk processing</div>
+                        <div style="color: #94a3b8; font-size: 12px;">Fast response time</div>
+                    </div>
+                    <div style="background: rgba(15, 15, 35, 0.8); border: 1px solid rgba(123, 104, 238, 0.3); border-radius: 10px; padding: 15px;">
+                        <div style="color: #7b68ee; font-weight: 700;">💰 Pricing</div>
+                        <div style="color: #94a3b8; font-size: 12px;">Cheap monthly plans</div>
+                        <div style="color: #94a3b8; font-size: 12px;">Custom packages</div>
+                        <div style="color: #94a3b8; font-size: 12px;">Enterprise solutions</div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="redirectToWhatsApp()" style="width: 100%; background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); color: white; border: none; border-radius: 12px; padding: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 16px;">
+                💬 Contact Developer on WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div id="depositModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 46, 0.95); border: 1px solid rgba(64, 224, 208, 0.3); border-radius: 20px; padding: 30px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; backdrop-filter: blur(20px);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <hsernames.json'
 
 # --- CONSTANTS ---
 SEARCH_PRICE = 30
