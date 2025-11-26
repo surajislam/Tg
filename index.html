@@ -422,6 +422,65 @@
             transform: translateY(-1px);
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1001;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(123, 104, 238, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 95%;
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            color: #7b68ee;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+            padding: 5px;
+        }
+
+        .qr-code-img {
+            width: 100%;
+            max-width: 250px;
+            height: auto;
+            border-radius: 10px;
+            margin: 20px auto;
+            display: block;
+            border: 4px solid #40e0d0;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -485,7 +544,7 @@
             <p>Advanced Username Search with Phone Details</p>
 
             <div class="user-info">
-                <div class="user-greeting">Welcome, {{ user_name }}!</div>
+                <div class="user-greeting">Welcome, {{ username }}!</div>
                 <a href="/logout" class="logout-btn">Logout</a>
             </div>
 
@@ -505,6 +564,7 @@
                 </div>
             </div>
 
+            {% if not is_unlimited %}
             <div class="search-section" id="coupon-section" style="margin-top: 30px;">
                 <div class="section-title">
                     <span class="section-icon">🎁</span>
@@ -516,14 +576,19 @@
                         <span>🔑</span>
                         <span>Enter Code for Free Access</span>
                     </label>
-                    <input type="text" id="coupon-input" class="search-input" placeholder="Enter coupon code (e.g., SBSIMPLE00)" autocomplete="off">
+                    <input type="text" id="coupon-input" class="search-input" placeholder="Enter coupon code (e.g., UNLTD999)" autocomplete="off">
                 </div>
 
                 <button onclick="applyCoupon()" class="search-btn" id="coupon-btn" style="background: linear-gradient(135deg, #7b68ee 0%, #a05193 100%);">
                     🎁 Apply Code
                 </button>
-                <div id="coupon-message" class="success-message" style="display: none; margin-top: 10px;"></div>
+                <div id="coupon-message" class="error-message" style="display: none; margin-top: 10px;"></div>
             </div>
+            {% else %}
+            <div class="success-message" style="margin-top: 30px;">
+                🎉 **Congratulations!** You have **Unlimited Access**!
+            </div>
+            {% endif %}
             </div>
 
         <div class="content">
@@ -531,7 +596,9 @@
                 <div class="section-title">
                     <span class="section-icon">🔍</span>
                     <span>Username Search</span>
-                    <span class="pricing-badge">₹30 per search</span>
+                    <span class="pricing-badge">
+                        {% if is_unlimited %}FREE / UNLIMITED{% else %}₹30 per search{% endif %}
+                    </span>
                 </div>
 
                 <div class="input-group">
@@ -545,17 +612,18 @@
                 <button onclick="searchUsername()" class="search-btn" id="search-btn">
                     🔍 Search Username
                 </button>
+                <div id="search-message" class="error-message" style="display: none; margin-top: 10px;"></div>
             </div>
         </div>
 
         <div id="results" style="display: none;"></div>
     </div>
 
-    <div id="apiModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1001; backdrop-filter: blur(5px);">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 46, 0.95); border: 1px solid rgba(123, 104, 238, 0.3); border-radius: 20px; padding: 30px; max-width: 500px; width: 95%; backdrop-filter: blur(20px);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h3 style="color: #7b68ee; font-size: 20px; font-weight: 700;">🚀 API Services</h3>
-                <button onclick="closeApiModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; padding: 5px;">×</button>
+    <div id="apiModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🚀 API Services</h3>
+                <button onclick="closeApiModal()" class="modal-close-btn">×</button>
             </div>
 
             <div style="text-align: center; margin-bottom: 25px;">
@@ -587,77 +655,246 @@
                 </div>
             </div>
 
-            <button onclick="redirectToWhatsApp()" style="width: 100%; background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); color: white; border: none; border-radius: 12px; padding: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 16px;">
-                💬 Contact Developer on WhatsApp
+            <button onclick="redirectToWhatsApp()" style="width: 100%; background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); color: white; border: none; border-radius: 12px; padding: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease;">
+                💬 Contact on WhatsApp for API
             </button>
         </div>
     </div>
 
-    <div id="depositModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 46, 0.95); border: 1px solid rgba(64, 224, 208, 0.3); border-radius: 20px; padding: 30px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; backdrop-filter: blur(20px);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h3 style="color: #40e0d0; font-size: 20px; font-weight: 700;">💳 Add Balance</h3>
-                <button onclick="closeDepositModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; padding: 5px;">×</button>
+    <div id="depositModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">💳 Add Balance / Deposit</h3>
+                <button onclick="closeDepositModal()" class="modal-close-btn">×</button>
             </div>
-
-            <div style="color: #e2e8f0; margin-bottom: 20px; background: rgba(64, 224, 208, 0.1); border: 1px solid rgba(64, 224, 208, 0.3); border-radius: 12px; padding: 15px; text-align: center;">
-                Minimum Deposit: ₹60 (2 Searches)
-            </div>
-
-            <div style="background: rgba(15, 15, 35, 0.8); border-radius: 15px; padding: 20px; margin-bottom: 20px;">
-                <div style="color: #40e0d0; font-weight: 700; font-size: 18px; margin-bottom: 15px; text-align: center;">Payment Information</div>
+            
+            <div style="text-align: center;">
+                <div style="color: #40e0d0; font-size: 18px; font-weight: 600; margin-bottom: 10px;">Scan QR Code to Pay</div>
+                <img src="{{ url_for('static', filename='qr-code.jpg') }}" alt="QR Code" class="qr-code-img"> 
                 
-                <div style="margin-bottom: 10px;">
-                    <span style="color: #94a3b8; font-weight: 600;">UPI ID:</span> 
-                    <span id="upi-id" style="color: #e2e8f0; font-family: 'Monaco', monospace;">hackingteamx@paytm</span>
-                    <button onclick="copyUpiId()" style="background: #7b68ee; color: white; border: none; border-radius: 5px; padding: 5px 10px; margin-left: 10px; cursor: pointer;">Copy</button>
+                <div style="margin-top: 20px;">
+                    <div style="color: #e2e8f0; font-size: 16px; margin-bottom: 10px;">Enter UTR / Transaction ID (for verification)</div>
+                    <input type="text" id="utr-input" class="search-input" placeholder="12-digit UTR or Transaction ID" style="text-align: center;">
+                    <button onclick="verifyUtr()" class="search-btn" style="background: linear-gradient(135deg, #40e0d0 0%, #48cc8c 100%); margin-top: 15px;">
+                        Verify Payment
+                    </button>
                 </div>
 
-                <div style="margin-bottom: 10px;">
-                    <span style="color: #94a3b8; font-weight: 600;">Name:</span> 
-                    <span style="color: #e2e8f0;">HACKINGTEAMX</span>
-                </div>
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                <div style="color: #40e0d0; font-weight: 700; margin-bottom: 10px;">Select Amount:</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;">
-                    <button class="amount-btn" data-amount="60">₹60 (2 S)</button>
-                    <button class="amount-btn" data-amount="90">₹90 (3 S)</button>
-                    <button class="amount-btn" data-amount="120">₹120 (4 S)</button>
-                    <button class="amount-btn" data-amount="900">₹900 (30 S)</button>
-                    <button class="amount-btn" data-amount="1800">₹1800 (60 S)</button>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label class="input-label">
-                    <span>💳</span>
-                    <span>Enter UTR/Reference Number</span>
-                </label>
-                <input type="text" id="utr-input" class="search-input" placeholder="Enter 12-digit UTR or Reference Number" autocomplete="off" maxlength="12">
-            </div>
-
-            <button onclick="processDeposit()" id="deposit-btn" class="search-btn" style="background: linear-gradient(135deg, #48cc8c 0%, #34d399 100%);">
-                ➕ Verify & Add Balance
-            </button>
-            <div id="deposit-message" class="error-message" style="display: none;"></div>
-
-            <div style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 20px;">
-                Note: UTR verification is manual. It may take 1-5 minutes for balance to update.
+                <div id="utr-message" class="error-message" style="display: none; margin-top: 10px;"></div>
             </div>
         </div>
     </div>
+
 
     <script>
-        // Placeholder for functions defined by user's original HTML/JS
-        function openDepositModal() {
-            document.getElementById('depositModal').style.display = 'block';
+        // Flask se user hash ko JavaScript variable mein store karein
+        const USER_HASH = "{{ user_hash }}";
+        const IS_UNLIMITED = {{ is_unlimited|tojson }}; // Jinja filter to pass boolean correctly
+
+        // --- Utility Functions ---
+
+        function toggleDetails(button) {
+            const details = button.previousElementSibling; // Assuming mobile-details is right before the button
+            details.classList.toggle('show');
+            button.textContent = details.classList.contains('show') ? 'Hide Details' : 'Show Details';
+        }
+        
+        function showMessage(type, message, elementId) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = type === 'success' ? 'success-message' : 'error-message';
+            element.style.display = 'block';
         }
 
-        function closeDepositModal() {
-            document.getElementById('depositModal').style.display = 'none';
+        function hideMessage(elementId) {
+            document.getElementById(elementId).style.display = 'none';
         }
+
+        // --- Coupon Logic ---
+
+        function applyCoupon() {
+            const couponCode = document.getElementById('coupon-input').value.trim().toUpperCase();
+            const couponBtn = document.getElementById('coupon-btn');
+            const messageDiv = document.getElementById('coupon-message');
+            
+            hideMessage('coupon-message');
+
+            if (!couponCode) {
+                showMessage('error', 'Please enter a coupon code.', 'coupon-message');
+                return;
+            }
+            
+            couponBtn.disabled = true;
+            couponBtn.textContent = 'Applying...';
+
+            fetch('/apply_coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    coupon_code: couponCode,
+                    user_hash: USER_HASH 
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.status, data.message, 'coupon-message');
+                if (data.status === 'success') {
+                    // Success hone par page reload karein taaki dashboard update ho sake
+                    setTimeout(() => window.location.reload(), 1500); 
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('error', 'An error occurred during coupon application.', 'coupon-message');
+            })
+            .finally(() => {
+                couponBtn.disabled = false;
+                couponBtn.textContent = '🎁 Apply Code';
+            });
+        }
+
+
+        // --- Search Logic ---
+
+        function searchUsername() {
+            const usernameInput = document.getElementById('username-input');
+            const searchTerm = usernameInput.value.trim().replace('@', '');
+            const searchBtn = document.getElementById('search-btn');
+            const resultsDiv = document.getElementById('results');
+            const messageDiv = document.getElementById('search-message');
+            const currentBalanceSpan = document.getElementById('current-balance');
+
+            hideMessage('search-message');
+            resultsDiv.style.display = 'none';
+
+            if (!searchTerm) {
+                showMessage('error', 'Please enter a Telegram username.', 'search-message');
+                return;
+            }
+
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching... (1/30 deduction)';
+
+            // Render loading state
+            resultsDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Searching for ${searchTerm}...</div>
+                </div>
+            `;
+            resultsDiv.style.display = 'block';
+
+
+            fetch('/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `search_term=${encodeURIComponent(searchTerm)}`,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    showMessage('error', data.message, 'search-message');
+                    resultsDiv.style.display = 'none';
+                } else {
+                    // Success: Update balance and display results
+                    if (!IS_UNLIMITED) {
+                        currentBalanceSpan.textContent = data.new_balance;
+                        searchBtn.textContent = '🔍 Search Username'; // Button text update
+                        showMessage('success', `Search successful. New balance: ₹${data.new_balance}`, 'search-message');
+                    } else {
+                        showMessage('success', `Unlimited search successful.`, 'search-message');
+                    }
+                    
+                    renderResults(data.results);
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                showMessage('error', 'An unexpected network error occurred.', 'search-message');
+            })
+            .finally(() => {
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🔍 Search Username';
+                usernameInput.value = ''; // Clear input field
+            });
+        }
+
+        function renderResults(results) {
+            const resultsDiv = document.getElementById('results');
+            let html = `<div class="results">
+                            <div class="result-title">
+                                <span class="section-icon">✅</span>
+                                <span>Search Results (${results.length})</span>
+                            </div>`;
+
+            results.forEach(item => {
+                // Ensure mobile_details is displayed as pre-formatted text if it's a string
+                let detailsHtml = '';
+                if (typeof item.mobile_details === 'string') {
+                    // Raw string output for admin-entered details
+                    detailsHtml = item.mobile_details;
+                } else if (typeof item.mobile_details === 'object' && item.mobile_details !== null) {
+                    // Format complex object if needed (based on your old format)
+                    const details = item.mobile_details;
+                    detailsHtml += `👤 Full Name: ${details.full_name || 'N/A'}\n`;
+                    detailsHtml += `👨 Father Name: ${details.father_name || 'N/A'}\n`;
+                    detailsHtml += `🃏 Document No: ${details.document_number || 'N/A'}\n`;
+                    detailsHtml += `🗺️ Region: ${details.region || 'N/A'}\n\n`;
+                    
+                    detailsHtml += `🏡 Addresses:\n`;
+                    if (details.addresses && Array.isArray(details.addresses)) {
+                        details.addresses.forEach(addr => {
+                            detailsHtml += `  - ${addr}\n`;
+                        });
+                    } else {
+                        detailsHtml += `  - N/A\n`;
+                    }
+                    
+                    detailsHtml += `\n📞 Phone Numbers:\n`;
+                    if (details.phone_numbers && Array.isArray(details.phone_numbers)) {
+                        details.phone_numbers.forEach(phone => {
+                            detailsHtml += `  - ${phone}\n`;
+                        });
+                    } else {
+                        detailsHtml += `  - N/A\n`;
+                    }
+                } else {
+                    detailsHtml = 'No detailed information available.';
+                }
+                
+                // Final result block
+                html += `
+                    <div class="result-item">
+                        <div class="result-row">
+                            <span class="result-label">Telegram User:</span>
+                            <span class="result-value">@${item.username}</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Registered Phone:</span>
+                            <span class="result-value phone-number">${item.mobile_number || 'N/A'}</span>
+                        </div>
+
+                        <div class="mobile-details">
+                            ${detailsHtml}
+                        </div>
+                        <button onclick="toggleDetails(this)" class="show-details-btn">
+                            Show Details
+                        </button>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+
+
+        // --- Modal Functions ---
 
         function openApiModal() {
             document.getElementById('apiModal').style.display = 'block';
@@ -667,91 +904,65 @@
             document.getElementById('apiModal').style.display = 'none';
         }
 
-        function redirectToWhatsApp() {
-            window.open('https://t.me/hackingteamx', '_blank'); // Using Telegram link instead of WhatsApp
+        function openDepositModal() {
+            document.getElementById('depositModal').style.display = 'block';
         }
-        
-        // --- NEW JAVASCRIPT LOGIC ---
 
-        // Function to apply the coupon code (Crucial part)
-        function applyCoupon() {
-            const couponCode = document.getElementById('coupon-input').value.trim();
-            const couponBtn = document.getElementById('coupon-btn');
-            const couponMessage = document.getElementById('coupon-message');
+        function closeDepositModal() {
+            document.getElementById('depositModal').style.display = 'none';
+            // Clear any previous message or UTR input on close
+            document.getElementById('utr-input').value = '';
+            hideMessage('utr-message');
+        }
 
-            if (!couponCode) {
-                couponMessage.style.display = 'block';
-                couponMessage.className = 'error-message';
-                couponMessage.innerHTML = 'Kripya coupon code daalein.';
+        function redirectToWhatsApp() {
+            // Replace with your actual WhatsApp contact link
+            window.open('https://t.me/hackingteamx', '_blank');
+        }
+
+        function verifyUtr() {
+            const utr = document.getElementById('utr-input').value.trim();
+            const messageDiv = document.getElementById('utr-message');
+            
+            hideMessage('utr-message');
+
+            if (!utr || utr.length < 10) { // Basic validation
+                showMessage('error', 'Please enter a valid UTR/Transaction ID.', 'utr-message');
                 return;
             }
 
-            // Button ko disabled karna aur loading state set karna
-            couponBtn.disabled = true;
-            couponBtn.innerHTML = 'Applying...';
-            couponMessage.style.display = 'none';
-
-            fetch('/apply_coupon', {
+            // UTR verification logic yahan aayega, jo server (App.py) ko call karega
+            showMessage('success', `Verification request sent for UTR: ${utr}. Please wait.`, 'utr-message');
+            
+            // NOTE: Aapko App.py mein /verify_utr route banana hoga.
+            // Example fetch:
+            /*
+            fetch('/verify_utr', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ code: couponCode })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ utr: utr, user_hash: USER_HASH })
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                couponBtn.disabled = false;
-                couponBtn.innerHTML = '🎁 Apply Code';
-
-                couponMessage.style.display = 'block';
-                
-                if (data.success) {
-                    couponMessage.className = 'success-message';
-                    couponMessage.innerHTML = data.message + ' Page refresh ho raha hai...';
-                    // Success hone par, page reload karein taki balance/access update ho jaaye
-                    setTimeout(() => {
-                        window.location.reload(); 
-                    }, 1500); 
-                } else {
-                    couponMessage.className = 'error-message';
-                    couponMessage.innerHTML = data.message;
+                showMessage(data.status, data.message, 'utr-message');
+                if (data.status === 'success') {
+                    // Success hone par balance update karein
+                    setTimeout(() => window.location.reload(), 2000);
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                couponBtn.disabled = false;
-                couponBtn.innerHTML = '🎁 Apply Code';
-                couponMessage.style.display = 'block';
-                couponMessage.className = 'error-message';
-                couponMessage.innerHTML = 'Error applying coupon. Please try again.';
             });
-        }
-        
-        // --- EXISTING PLACEHOLDER FUNCTIONS (need full implementation) ---
-        function searchUsername() {
-            // Placeholder: Needs full implementation based on your server logic
-            console.log("Searching username...");
+            */
         }
 
-        function processDeposit() {
-            // Placeholder: Needs full implementation based on your server logic
-            console.log("Processing deposit...");
-        }
 
-        function copyUpiId() {
-             // Implementation for copying UPI ID
-             const upiId = document.getElementById('upi-id').textContent;
-             navigator.clipboard.writeText(upiId).then(() => {
-                alert("UPI ID copied: " + upiId);
-             });
+        // Global Event Listeners for Modals
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('apiModal')) {
+                closeApiModal();
+            }
+            if (event.target == document.getElementById('depositModal')) {
+                closeDepositModal();
+            }
         }
-
-        document.querySelectorAll('.amount-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                document.querySelectorAll('.amount-btn').forEach(btn => btn.style.backgroundColor = '');
-                this.style.backgroundColor = '#40e0d0';
-            });
-        });
         
     </script>
 </body>
