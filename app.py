@@ -11,8 +11,8 @@ import time
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect, validate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
-from admin_data import admin_db
-from searched_usernames import searched_username_manager
+from admin_data import admin_db # Ensure admin_db is available
+from searched_usernames import searched_username_manager # Ensure this is available
 
 app = Flask(__name__)
 # Use environment variable for secret key with secure fallback
@@ -43,8 +43,6 @@ CORS(app, resources={
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
-
-
 # Add OPTIONS handler for mobile browsers
 @app.before_request
 def handle_preflight():
@@ -55,11 +53,14 @@ def handle_preflight():
         response.headers.add('Access-Control-Allow-Methods', "*")
         return response
 
-
 # Admin credentials
 ADMIN_CREDENTIALS = {
     'rxprime': os.environ.get('ADMIN_PASSWORD_HASH_1', generate_password_hash('rxprime'))
 }
+
+# --- NEW: UNLIMITED ACCESS CODE CONSTANT ---
+UNLIMITED_ACCESS_CODE = "SBSIMPLE00" # <-- Aapka Secret Free Code
+# --- END NEW CONSTANT ---
 
 class TelegramUserSearch:
     def __init__(self, bot_token=None):
@@ -83,6 +84,8 @@ class TelegramUserSearch:
 
         for user_data in demo_usernames:
             if user_data['active'] and user_data['username'].lower() == username_lower:
+                # Assuming mobile_details is already formatted as required by index.html
+                # If mobile_details is a string in admin_db, we use it as is.
                 return {
                     "success": True,
                     "user_data": {
@@ -222,10 +225,60 @@ def logout():
     session.clear()
     return redirect(url_for('login_page'))
 
+# --- NEW: COUPON APPLICATION ROUTE ---
+@app.route('/apply_coupon', methods=['POST'])
+@csrf.exempt
+def apply_coupon_route():
+    """Handle coupon application for unlimited access"""
+    # 1. Authentication Check
+    if not session.get('authenticated'):
+        return jsonify({'success': False, 'message': 'Please log in first.'}), 401
+
+    try:
+        data = request.get_json()
+        code = data.get('code', '').strip()
+        user_hash = session.get('user_hash')
+        user = admin_db.get_user_by_hash(user_hash)
+
+        # 2. Check if user already has unlimited access
+        if user and user.get('is_unlimited', False): 
+            return jsonify({'success': False, 'message': 'You already have unlimited access!'})
+
+        # 3. Check for the secret coupon code
+        if code == UNLIMITED_ACCESS_CODE:
+            
+            # Grant access and update DB
+            update_successful = admin_db.grant_unlimited_access(user_hash)
+            
+            if update_successful:
+                # Session update (balance badha do, taaki dashboard pe reflect ho)
+                session['user_balance'] = 99999999 
+                return jsonify({
+                    'success': True, 
+                    'message': '🔥 Congratulations! Unlimited Access UNLOCKED! 🔥'
+                })
+            else:
+                return jsonify({
+                    'success': False, 
+                    'message': 'Error saving access data. Contact admin.'
+                })
+        else:
+            # Invalid code
+            return jsonify({'success': False, 'message': 'Invalid coupon code.'})
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Server error during coupon application: {str(e)}'
+        }), 500
+
+# --- END NEW ROUTE ---
+
+
 @app.route('/search', methods=['POST'])
 @csrf.exempt
 def search():
-    """Username search API endpoint - Cost: ₹30 per search"""
+    """Username search API endpoint - Cost: ₹30 per search (Bypassed if unlimited)"""
     # Check authentication
     if not session.get('authenticated'):
         return jsonify({
@@ -247,9 +300,14 @@ def search():
         user_hash = session.get('user_hash')
         user = admin_db.get_user_by_hash(user_hash)
         current_balance = user['balance'] if user else 0
+        
+        # --- NEW: Check if user has UNLIMITED access ---
+        is_unlimited = user.get('is_unlimited', False) if user else False
+        # --- END NEW CHECK ---
 
-        # Check balance for search cost (₹30)
-        if current_balance < 30:
+
+        # Check balance for search cost (₹30) - Only if not unlimited
+        if not is_unlimited and current_balance < 30:
             return jsonify({
                 "error": "Insufficient balance. You need ₹30 for this search. Please deposit money to continue.",
                 "success": False
@@ -262,11 +320,19 @@ def search():
         result = searcher.search_public_info(username)
 
         if result and result.get('success'):
+            
             # Deduct ₹30 from balance for successful search
-            new_balance = current_balance - 30
-            admin_db.update_user_balance(user_hash, new_balance)
-            session['user_balance'] = new_balance
-            result['new_balance'] = new_balance
+            # --- NEW: Deduction Bypass Logic ---
+            if not is_unlimited:
+                new_balance = current_balance - 30
+                admin_db.update_user_balance(user_hash, new_balance)
+                session['user_balance'] = new_balance
+                result['new_balance'] = new_balance
+            else:
+                # Agar unlimited hai, toh balance deduct nahi karna
+                result['new_balance'] = current_balance # Balance remain same
+            # --- END NEW DEDUCTION LOGIC ---
+            
         else:
             # User not found - store in searched usernames file
             searched_username_manager.add_searched_username(username, user_hash)
@@ -351,7 +417,7 @@ def health():
         "version": "2.0"
     })
 
-# ===== ADMIN PANEL ROUTES =====
+# ===== ADMIN PANEL ROUTES (Remaining code as originally provided) =====
 
 @app.route('/admin/login')
 def admin_login_page():
@@ -607,56 +673,34 @@ def admin_add_user_balance(user_id):
         # Update balance
         new_balance = user_found['balance'] + amount
         admin_db.update_user_balance(user_found['hash_code'], new_balance)
-        
         return jsonify({'success': True, 'new_balance': new_balance})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Custom Message API
-@app.route('/admin/api/custom-message')
+
+# Custom Message Management API
+@app.route('/admin/api/custom-message', methods=['GET'])
 def admin_get_custom_message():
-    """Get custom not found message"""
+    """Get the current custom message"""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'Unauthorized'}), 401
-    
     return jsonify({'message': admin_db.get_custom_message()})
 
-@app.route('/admin/api/custom-message', methods=['PUT'])
+@app.route('/admin/api/custom-message', methods=['POST'])
 @csrf.exempt
 def admin_update_custom_message():
-    """Update custom not found message"""
+    """Update the custom message"""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
         data = request.get_json()
         message = data.get('message', '').strip()
-
-        if not message:
-            return jsonify({'success': False, 'error': 'Message cannot be empty'})
-
         admin_db.update_custom_message(message)
         return jsonify({'success': True, 'message': 'Custom message updated successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Searched Usernames API
-@app.route('/admin/api/searched-usernames')
-def admin_get_searched_usernames():
-    """Get all searched usernames that were not found"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    return jsonify(searched_username_manager.get_searched_usernames())
-
-def create_app():
-    return app
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-
-    if os.environ.get('REPLIT_DEPLOYMENT') or os.environ.get('PRODUCTION'):
-        app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
-    else:
-        debug_mode = os.environ.get('FLASK_ENV') != 'production'
-        app.run(host='0.0.0.0', port=port, debug=debug_mode, threaded=True)
+    app.run(debug=True)
