@@ -1,5 +1,10 @@
+#App.py coad update kardo full
+
+
+
+# App.py (Complete Final Code)
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-from datetime import datetime, timedelta 
+from datetime import datetime
 import os
 import time
 
@@ -11,16 +16,7 @@ except ImportError:
     exit()
 
 app = Flask(__name__)
-# SECRET_KEY ko simple rakhte hain, jaisa aapne shuru mein dekha tha
-app.secret_key = os.urandom(24)
-
-# --- DATABASE INITIALIZATION ---
-# Gunicorn is block ko zaroor run karega jab woh app ko import karega.
-print("Initializing Database...")
-admin_db.init_database()
-print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
-# --- END DATABASE INITIALIZATION ---
-
+app.secret_key = os.urandom(24) # Production ke liye strong secret key use karein
 
 # Configuration
 SEARCH_COST = 1 # Per search cost
@@ -87,7 +83,7 @@ def check_utr():
 @app.route('/apply_coupon', methods=['POST'])
 def apply_coupon():
     if 'user_hash' not in session:
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
 
     coupon_code = request.json.get('coupon_code', '').strip().upper()
     user_hash = session['user_hash']
@@ -121,7 +117,7 @@ def apply_coupon():
 @app.route('/search', methods=['POST'])
 def search_username():
     if 'user_hash' not in session:
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
 
     user_hash = session['user_hash']
     username = request.json.get('username', '').strip().replace('@', '')
@@ -247,11 +243,6 @@ def admin_update_balance():
     hash_code = data.get('hash_code')
     new_balance = data.get('new_balance')
     if not hash_code or new_balance is None: return jsonify({'success': False, 'error': 'Missing data'}), 400
-    try:
-        new_balance = int(new_balance)
-    except ValueError:
-        return jsonify({'success': False, 'error': 'Balance must be an integer'}), 400
-        
     if admin_db.update_user_balance(hash_code, new_balance):
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'User not found'}), 404
@@ -275,7 +266,7 @@ def admin_add_username():
     mobile_details = data.get('mobile_details')
     if not all([username, mobile_number, mobile_details]): return jsonify({'success': False, 'error': 'Missing required fields'}), 400
     new_user = admin_db.add_username(username, mobile_number, mobile_details)
-    return jsonify({'success': True, 'username': new_user})
+    return jsonify({'success': True, 'username': new_user['username']})
 
 @app.route('/admin/data/update_username', methods=['POST'])
 def admin_update_username():
@@ -308,7 +299,7 @@ def admin_add_utr():
     description = data.get('description')
     if not utr or not description: return jsonify({'success': False, 'error': 'Missing required fields'}), 400
     new_utr = admin_db.add_utr(utr, description)
-    return jsonify({'success': True, 'utr': new_utr})
+    return jsonify({'success': True, 'utr': new_utr['utr']})
 
 @app.route('/admin/utr/delete', methods=['POST'])
 def admin_delete_utr():
@@ -334,5 +325,10 @@ def admin_update_message():
 
 
 if __name__ == '__main__':
-    # Yeh block sirf local testing ke liye chhod diya gaya hai.
-    pass
+    print("Initializing Database...")
+    admin_db.init_database()
+    print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
+    # app.run() line ko hata diya gaya hai
+
+    # Start the Flask app
+    app.run(debug=True, host='0.0.0.0', port=5000)
