@@ -32,6 +32,7 @@ class AdminDataManager:
                         "name": "Admin User",
                         "hash_code": admin_hash,
                         "balance": 9999,
+                        "is_unlimited": False, # <--- NEW FIELD
                         "created_at": datetime.now().isoformat()
                     },
                     {
@@ -39,10 +40,12 @@ class AdminDataManager:
                         "name": "Special User",
                         "hash_code": "SPECIAL9999X",
                         "balance": 9999,
+                        "is_unlimited": False, # <--- NEW FIELD
                         "created_at": datetime.now().isoformat()
                     }
                 ],
                 "demo_usernames": [
+                    # ... (Demo usernames as before) ...
                     {
                         "id": 1,
                         "username": "riyakhanna1",
@@ -111,21 +114,18 @@ class AdminDataManager:
             data = self.load_data()
             updated = False
 
-            if 'users' not in data:
-                data['users'] = []
-                updated = True
-
-            if 'demo_usernames' not in data:
-                data['demo_usernames'] = []
-                updated = True
-
-            if 'valid_utrs' not in data:
-                data['valid_utrs'] = []
-                updated = True
-
+            if 'users' not in data: data['users'] = []; updated = True
+            if 'demo_usernames' not in data: data['demo_usernames'] = []; updated = True
+            if 'valid_utrs' not in data: data['valid_utrs'] = []; updated = True
             if 'custom_message' not in data: # Ensure custom_message key exists
-                data['custom_message'] = "You have just added balance, please wait for 2 minutes for search"
-                updated = True
+                data['custom_message'] = "You have just added balance, please wait for 2 minutes for search"; updated = True
+
+            # --- EXISTING USER CHECK FOR 'is_unlimited' ---
+            for user in data['users']:
+                if 'is_unlimited' not in user:
+                    user['is_unlimited'] = False
+                    updated = True
+            # --- END EXISTING USER CHECK ---
 
             if updated:
                 self.save_data(data)
@@ -143,15 +143,18 @@ class AdminDataManager:
                         fcntl.flock(f.fileno(), fcntl.LOCK_SH)
                         try:
                             self.data = json.load(f) # Load into self.data
-                            # Ensure all required keys exist
-                            if 'users' not in self.data:
-                                self.data['users'] = []
-                            if 'demo_usernames' not in self.data:
-                                self.data['demo_usernames'] = []
-                            if 'valid_utrs' not in self.data:
-                                self.data['valid_utrs'] = []
+                            # Ensure all required keys exist and add 'is_unlimited' if missing
+                            if 'users' not in self.data: self.data['users'] = []
+                            if 'demo_usernames' not in self.data: self.data['demo_usernames'] = []
+                            if 'valid_utrs' not in self.data: self.data['valid_utrs'] = []
                             if 'custom_message' not in self.data: # Ensure custom_message key exists
                                 self.data['custom_message'] = "You have just added balance, please wait for 2 minutes for search"
+                            
+                            # Add 'is_unlimited' to users if missing during load
+                            for user in self.data['users']:
+                                if 'is_unlimited' not in user:
+                                    user['is_unlimited'] = False
+
                             return self.data
                         finally:
                             fcntl.flock(f.fileno(), fcntl.LOCK_UN)
@@ -230,6 +233,7 @@ class AdminDataManager:
             "name": name,
             "hash_code": hash_code,
             "balance": 0,
+            "is_unlimited": False, # <--- NEW FIELD ADDED HERE
             "created_at": datetime.now().isoformat()
         }
 
@@ -247,6 +251,9 @@ class AdminDataManager:
         data = self.load_data()
         for user in data['users']:
             if user['hash_code'] == hash_code:
+                # Ensure 'is_unlimited' is present even if loaded from old JSON
+                if 'is_unlimited' not in user:
+                    user['is_unlimited'] = False 
                 return user
         return None
 
@@ -259,6 +266,25 @@ class AdminDataManager:
                 break
         self.save_data(data)
         return True
+    
+    # --- NEW METHOD: GRANT UNLIMITED ACCESS ---
+    def grant_unlimited_access(self, hash_code):
+        """Grants unlimited access and sets a high balance for the user."""
+        data = self.load_data()
+        found = False
+        for user in data['users']:
+            if user['hash_code'] == hash_code:
+                user['is_unlimited'] = True # Set the flag
+                user['balance'] = 99999999 # Set high balance
+                found = True
+                break
+        
+        if found:
+            self.save_data(data)
+            return True
+        return False
+    # --- END NEW METHOD ---
+
 
     def delete_user(self, user_id):
         """Delete user"""
@@ -275,9 +301,7 @@ class AdminDataManager:
         data = self.load_data()
         new_id = max([item['id'] for item in data['demo_usernames']], default=0) + 1
 
-        # Clean mobile details - admin panel में जो enter करें वही show ho
         if isinstance(mobile_details, str):
-            # Simply store the clean string as entered by admin
             clean_details = mobile_details.strip()
         else:
             clean_details = mobile_details
@@ -286,7 +310,7 @@ class AdminDataManager:
             "id": new_id,
             "username": username,
             "mobile_number": mobile_number,
-            "mobile_details": clean_details,  # Direct storage, no extra formatting
+            "mobile_details": clean_details, 
             "active": True,
             "created_at": datetime.now().isoformat()
         }
@@ -301,7 +325,6 @@ class AdminDataManager:
                 item['username'] = username
                 item['mobile_number'] = mobile_number
 
-                # Store exactly what admin enters, no extra formatting
                 if isinstance(mobile_details, str):
                     clean_details = mobile_details.strip()
                 else:
@@ -365,5 +388,5 @@ class AdminDataManager:
         self.save_data() # Save the updated message
         return True
 
-# Global instance
+# Global instance (App.py is expecting this)
 admin_db = AdminDataManager()
