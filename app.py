@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-# Fix 1: timedelta import (coupon expiry ke liye)
 from datetime import datetime, timedelta 
 import os
 import time
@@ -12,11 +11,12 @@ except ImportError:
     exit()
 
 app = Flask(__name__)
-# Production ke liye secret key set karein
-app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+# SECRET_KEY ko simple rakhte hain, jaisa aapne shuru mein dekha tha
+app.secret_key = os.urandom(24)
 
 # --- CRITICAL FIX 2: DATABASE INITIALIZATION MOVED GLOBALLY ---
 # Gunicorn is block ko zaroor run karega jab woh app ko import karega.
+# Yeh woh jagah hai jahaan ab file creation/loading successfully hogi.
 print("Initializing Database...")
 admin_db.init_database()
 print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
@@ -88,7 +88,7 @@ def check_utr():
 @app.route('/apply_coupon', methods=['POST'])
 def apply_coupon():
     if 'user_hash' not in session:
-        return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     coupon_code = request.json.get('coupon_code', '').strip().upper()
     user_hash = session['user_hash']
@@ -336,6 +336,5 @@ def admin_update_message():
 
 if __name__ == '__main__':
     # Yeh block sirf local testing ke liye chhod diya gaya hai.
-    # Deployment ke liye zaruri initialization code upar move kar diya gaya hai.
     pass
     
