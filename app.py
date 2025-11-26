@@ -1,611 +1,330 @@
-#!/usr/bin/env python3
-"""
-Telegram Username Search Web App
-Web-based interface for Telegram username search with hash code authentication
-"""
-
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+# App.py (Complete Final Code)
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from datetime import datetime
 import os
-import hashlib
 import time
-from flask_cors import CORS
-from flask_wtf.csrf import CSRFProtect, validate_csrf
-from werkzeug.security import generate_password_hash, check_password_hash
-from admin_data import admin_db # Ensure admin_db is available
-from searched_usernames import searched_username_manager # Ensure this is available
+
+# Ensure admin_data.py is in the same directory
+try:
+    from admin_data import admin_db, ADMIN_USERNAME, ADMIN_PASSWORD, COUPON_CODES
+except ImportError:
+    print("Error: admin_data.py not found. Please ensure it's in the same directory.")
+    exit()
 
 app = Flask(__name__)
-# Use environment variable for secret key with secure fallback
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', '93ad4012d376e47c78e3cdab59f81ceba23c65bbdc1e34560f0b6da01a79d2b8')
+app.secret_key = os.urandom(24) # Production ke liye strong secret key use karein
 
-# Configure session cookies for mobile compatibility
-app.config.update(
-    SESSION_COOKIE_SECURE=False,  # Allow HTTP for development/Replit
-    SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to cookies
-    SESSION_COOKIE_SAMESITE='None',  # Allow cross-site requests for mobile
-    PERMANENT_SESSION_LIFETIME=1800  # 30 minutes session timeout
-)
+# Configuration
+SEARCH_COST = 1 # Per search cost
 
-# Initialize CSRF protection
-csrf = CSRFProtect(app)
+# --- USER FACING ROUTES (index.html) ---
 
-# Enable CORS for all routes (mobile compatibility)
-CORS(app, resources={
-    r'/*': {
-        'origins': '*',
-        'methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        'allow_headers': ['Content-Type', 'Authorization', 'X-Requested-With'],
-        'supports_credentials': False
-    }
-})
-
-# Mobile-friendly configurations
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-app.config['TEMPLATES_AUTO_RELOAD'] = True
-
-# Add OPTIONS handler for mobile browsers
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = app.make_response("")
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add('Access-Control-Allow-Headers', "*")
-        response.headers.add('Access-Control-Allow-Methods', "*")
-        return response
-
-# Admin credentials
-ADMIN_CREDENTIALS = {
-    'rxprime': os.environ.get('ADMIN_PASSWORD_HASH_1', generate_password_hash('rxprime'))
-}
-
-# --- UPDATED: UNLIMITED ACCESS CODE CONSTANT ---
-UNLIMITED_ACCESS_CODE = "SBSIMPLE00" 
-# --- END UPDATED CONSTANT ---
-
-class TelegramUserSearch:
-    def __init__(self, bot_token=None):
-        """
-        Demo search functionality
-        """
-        self.bot_token = bot_token or os.getenv('8528924905:AAEQS3DGCubbX8cs-JGloy5AhDU-MxA7mtI')
-
-    def search_public_info(self, username):
-        """
-        Search for username in demo database
-        """
-        if username.startswith('@'):
-            username = username[1:]
-
-        # Get demo usernames from database
-        demo_usernames = admin_db.get_usernames()
-
-        # Search for specific username in database (case insensitive)
-        username_lower = username.lower()
-
-        for user_data in demo_usernames:
-            if user_data['active'] and user_data['username'].lower() == username_lower:
-                # Assuming mobile_details is already formatted as required by index.html
-                # If mobile_details is a string in admin_db, we use it as is.
-                return {
-                    "success": True,
-                    "user_data": {
-                        "username": user_data['username'],
-                        "mobile_number": user_data['mobile_number'],
-                        "mobile_details": user_data['mobile_details']
-                    }
-                }
-
-        # User not found in database - store in searched usernames
-        return {
-            "success": False,
-            "error": "No details available in the database"
-        }
-
-# Initialize searcher
-searcher = TelegramUserSearch()
-
-@app.route('/')
-def home():
-    """Main page - check authentication and redirect appropriately"""
-    if not session.get('authenticated'):
-        return redirect(url_for('login_page'))
-    return redirect(url_for('dashboard'))
-
-@app.route('/login')
-def login_page():
-    """Login/Signup page"""
-    if session.get('authenticated'):
-        return redirect(url_for('home'))
-
-    response = app.make_response(render_template('login.html'))
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    return response
-
-@app.route('/signup', methods=['POST'])
-@csrf.exempt
-def signup():
-    """Handle user registration"""
-    try:
-        data = request.get_json()
-        name = data.get('name', '').strip()
-
-        if not name or len(name) < 2:
-            return jsonify({
-                'success': False,
-                'error': 'Please enter a valid name (at least 2 characters)'
-            })
-
-        # Create new user
-        new_user = admin_db.create_user(name)
-
-        return jsonify({
-            'success': True,
-            'message': 'Account created successfully!',
-            'hash_code': new_user['hash_code'],
-            'name': new_user['name']
-        })
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': 'Registration error occurred'
-        })
-
-@app.route('/login', methods=['POST'])
-@csrf.exempt
-def login():
-    """Handle login authentication"""
-    try:
-        data = request.get_json()
-        hash_code = data.get('hash_code', '').strip()
-
-        if not hash_code:
-            return jsonify({
-                'success': False,
-                'error': 'Please enter your hash code'
-            })
-
-        # Check if user exists
-        user = admin_db.get_user_by_hash(hash_code)
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        # Hash Code Login Logic
+        user_hash = request.form.get('user_hash', '').strip()
+        
+        user = admin_db.get_user_by_hash(user_hash)
+        
         if user:
-            session['authenticated'] = True
-            session['user_hash'] = hash_code
-            session['user_name'] = user['name']
-            session['user_balance'] = user['balance']
-            return jsonify({
-                'success': True,
-                'message': f'Welcome back, {user["name"]}!'
-            })
+            session['user_hash'] = user_hash
+            flash(f'Welcome back, {user["name"]}! Your balance is ₹{user["balance"]}.', 'success')
+            return redirect(url_for('index'))
         else:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid hash code. Please check and try again.'
-            })
+            flash('Invalid Hash Code. Please try again.', 'error')
 
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': 'Authentication error occurred'
-        })
+    # Data for GET Request/Rendering
+    user = None
+    if 'user_hash' in session:
+        user = admin_db.get_user_by_hash(session['user_hash'])
+        if not user:
+             session.pop('user_hash', None)
+             flash('Your session expired or hash is invalid.', 'error')
+             return redirect(url_for('index'))
+             
+    # Prepare message for the user panel
+    custom_message = admin_db.get_custom_message()
 
-@app.route('/dashboard')
-def dashboard():
-    """Main search dashboard"""
-    if not session.get('authenticated'):
-        session.clear()
-        return redirect(url_for('login_page'))
-
-    user_hash = session.get('user_hash')
-    user = admin_db.get_user_by_hash(user_hash)
-    balance = user['balance'] if user else 0
-
-    response = app.make_response(render_template('index.html',
-                                               balance=balance,
-                                               user_name=session.get('user_name')))
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    return response
+    return render_template('index.html', user=user, custom_message=custom_message, search_cost=SEARCH_COST)
 
 @app.route('/logout')
-def logout():
-    """Logout and clear session"""
-    session.clear()
-    return redirect(url_for('login_page'))
+def user_logout():
+    session.pop('user_hash', None)
+    flash('You have been logged out successfully.', 'success')
+    return redirect(url_for('index'))
 
-# --- NEW: COUPON APPLICATION ROUTE ---
+@app.route('/check_utr', methods=['POST'])
+def check_utr():
+    if 'user_hash' not in session:
+        return jsonify({'success': False, 'message': 'Session expired. Please log in again.'})
+
+    utr = request.json.get('utr', '').strip()
+    
+    if not utr:
+        return jsonify({'success': False, 'message': 'Please enter a UTR number.'})
+        
+    valid_utrs = admin_db.get_utrs()
+    
+    is_valid = any(item['utr'] == utr for item in valid_utrs)
+    
+    if is_valid:
+        # In a real system, you would add balance here and delete the UTR.
+        # For this demo, we just return success.
+        return jsonify({'success': True, 'message': 'Payment successful! Your balance will be credited soon.'})
+    else:
+        return jsonify({'success': False, 'message': 'Invalid UTR/Transaction ID. Please check and try again.'})
+
+
 @app.route('/apply_coupon', methods=['POST'])
-@csrf.exempt
-def apply_coupon_route():
-    """Handle coupon application for unlimited access"""
-    # 1. Authentication Check
-    if not session.get('authenticated'):
-        return jsonify({'success': False, 'message': 'Please log in first.'}), 401
+def apply_coupon():
+    if 'user_hash' not in session:
+        return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
 
-    try:
-        data = request.get_json()
-        code = data.get('code', '').strip()
-        user_hash = session.get('user_hash')
-        user = admin_db.get_user_by_hash(user_hash)
+    coupon_code = request.json.get('coupon_code', '').strip().upper()
+    user_hash = session['user_hash']
 
-        # 2. Check if user already has unlimited access
-        if user and user.get('is_unlimited', False): 
-            return jsonify({'success': False, 'message': 'You already have unlimited access!'})
-
-        # 3. Check for the secret coupon code
-        if code == UNLIMITED_ACCESS_CODE:
-
-            # Grant access and update DB
-            # NOTE: This uses the new grant_unlimited_access function from admin_db
-            update_successful = admin_db.grant_unlimited_access(user_hash)
-
-            if update_successful:
-                # Session update (balance badha do, taaki dashboard pe reflect ho)
-                session['user_balance'] = 99999999 
+    if coupon_code in COUPON_CODES:
+        coupon_data = COUPON_CODES[coupon_code]
+        
+        if coupon_data['is_active']:
+            access_days = coupon_data['access_days']
+            
+            # Grant unlimited access logic in admin_data.py
+            if admin_db.grant_unlimited_access(user_hash, access_days):
+                if access_days is None:
+                    expiry_msg = 'Lifetime'
+                else:
+                    expiry_dt = datetime.now() + timedelta(days=access_days)
+                    expiry_msg = expiry_dt.strftime('%d %b %Y')
+                    
                 return jsonify({
                     'success': True, 
-                    'message': '🔥 Congratulations! Unlimited Access UNLOCKED! 🔥'
+                    'message': f'Coupon "{coupon_code}" applied successfully! You now have Unlimited access until {expiry_msg}.'
                 })
             else:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Error saving access data. Contact admin.'
-                })
+                return jsonify({'success': False, 'error': 'User not found or database error.'})
         else:
-            # Invalid code
-            return jsonify({'success': False, 'message': 'Invalid coupon code.'})
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'Server error during coupon application: {str(e)}'
-        }), 500
-
-# --- END NEW ROUTE ---
+            return jsonify({'success': False, 'error': 'This coupon code is inactive.'})
+    else:
+        return jsonify({'success': False, 'error': 'Invalid coupon code.'})
 
 
 @app.route('/search', methods=['POST'])
-@csrf.exempt
-def search():
-    """Username search API endpoint - Cost: ₹30 per search (Bypassed if unlimited)"""
-    # Check authentication
-    if not session.get('authenticated'):
+def search_username():
+    if 'user_hash' not in session:
+        return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
+    
+    user_hash = session['user_hash']
+    username = request.json.get('username', '').strip().replace('@', '')
+
+    if not username:
+        return jsonify({'success': False, 'error': 'Please enter a Telegram username.'})
+        
+    user = admin_db.get_user_by_hash(user_hash)
+    
+    if not user:
+        session.pop('user_hash', None)
+        return jsonify({'success': False, 'error': 'Invalid user session. Please re-login.'}), 401
+        
+    # Check Unlimited status first
+    is_unlimited = admin_db.is_unlimited_active(user)
+    
+    # 1. Deduct Balance (Only if not unlimited)
+    if not is_unlimited:
+        if not admin_db.deduct_balance(user_hash, SEARCH_COST):
+            return jsonify({'success': False, 'error': f'Insufficient balance. Search costs ₹{SEARCH_COST}. Your current balance is ₹{user["balance"]}.'})
+
+    # 2. Search for the username in the demo database
+    match = admin_db.find_demo_username(username)
+    
+    if match:
+        # Found
+        # Get the latest balance after deduction for the response
+        updated_user = admin_db.get_user_by_hash(user_hash)
+        
         return jsonify({
-            'error': 'Authentication required',
-            'success': False
-        }), 401
-
-    try:
-        data = request.get_json()
-        username = data.get('username', '').strip()
-
-        if not username:
-            return jsonify({
-                "error": "Username enter kariye",
-                "success": False
-            })
-
-        # Get current user balance
-        user_hash = session.get('user_hash')
-        user = admin_db.get_user_by_hash(user_hash)
-        current_balance = user['balance'] if user else 0
-
-        # --- UPDATED: Check if user has UNLIMITED access ---
-        is_unlimited = user.get('is_unlimited', False) if user else False
-        # --- END UPDATED CHECK ---
-
-
-        # Check balance for search cost (₹30) - Only if not unlimited
-        if not is_unlimited and current_balance < 30:
-            return jsonify({
-                "error": "Insufficient balance. You need ₹30 for this search. Please deposit money to continue.",
-                "success": False
-            })
-
-        # Professional 10-second delay
-        time.sleep(10)
-
-        # Search perform karte hain
-        result = searcher.search_public_info(username)
-
-        if result and result.get('success'):
-
-            # Deduct ₹30 from balance for successful search
-            # --- UPDATED: Deduction Bypass Logic ---
-            if not is_unlimited:
-                new_balance = current_balance - 30
-                admin_db.update_user_balance(user_hash, new_balance)
-                session['user_balance'] = new_balance
-                result['new_balance'] = new_balance
-            else:
-                # Agar unlimited hai, toh balance deduct nahi karna
-                result['new_balance'] = current_balance # Balance remain same
-            # --- END UPDATED DEDUCTION LOGIC ---
-
-        else:
-            # User not found - store in searched usernames file
-            searched_username_manager.add_searched_username(username, user_hash)
-            custom_message = admin_db.get_custom_message()
-            result = {
-                "success": False,
-                "error": custom_message
-            }
-
-        return jsonify(result)
-
-    except Exception as e:
+            'success': True,
+            'found': True,
+            'result': match['mobile_details'], # Send the stored details
+            'new_balance': updated_user['balance'],
+            'is_unlimited': is_unlimited
+        })
+    else:
+        # Not Found
+        # 3. Log the search and return custom message
+        admin_db.log_searched_username(username, user_hash)
+        
+        # Get the latest balance after deduction
+        updated_user = admin_db.get_user_by_hash(user_hash)
+        
         return jsonify({
-            "error": f"Server error: {str(e)}",
-            "success": False
+            'success': True,
+            'found': False,
+            'message': admin_db.get_custom_message(),
+            'new_balance': updated_user['balance'],
+            'is_unlimited': is_unlimited
         })
 
-@app.route('/deposit', methods=['POST'])
-def deposit():
-    """Handle deposit requests with UTR verification"""
-    # Check authentication
-    if not session.get('authenticated'):
-        return jsonify({
-            'error': 'Authentication required',
-            'success': False
-        }), 401
 
-    try:
-        data = request.get_json()
-        utr = data.get('utr', '').strip()
-        amount = data.get('amount', 0)
+# --- ADMIN ROUTES ---
 
-        if not utr:
-            return jsonify({
-                'error': 'UTR number is required',
-                'success': False
-            })
-
-        if amount not in [60, 90, 120, 900, 1800]:
-            return jsonify({
-                'error': 'Invalid amount selected',
-                'success': False
-            })
-
-        # Check if UTR is valid from database
-        valid_utrs = admin_db.get_utrs()
-        valid_utr_numbers = [utr_data['utr'] for utr_data in valid_utrs if utr_data['active']]
-
-        if utr in valid_utr_numbers:
-            # Add amount to balance
-            user_hash = session.get('user_hash')
-            user = admin_db.get_user_by_hash(user_hash)
-            current_balance = user['balance'] if user else 0
-            new_balance = current_balance + amount
-            admin_db.update_user_balance(user_hash, new_balance)
-            session['user_balance'] = new_balance
-
-            return jsonify({
-                'success': True,
-                'message': 'Balance successfully added',
-                'new_balance': new_balance,
-                'amount_added': amount
-            })
-        else:
-            return jsonify({
-                'error': 'Wrong UTR number. Please check your payment and enter the correct UTR.',
-                'success': False
-            })
-
-    except Exception as e:
-        return jsonify({
-            'error': f'Server error: {str(e)}',
-            'success': False
-        })
-
-@app.route('/health')
-def health():
-    """Health check endpoint"""
-    return jsonify({
-        "status": "healthy",
-        "app": "Telegram Username Search with Hash Code Auth",
-        "version": "2.0"
-    })
-
-# ===== ADMIN PANEL ROUTES (Remaining code as originally provided) =====
-
-@app.route('/admin/login')
+@app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login_page():
-    """Admin login page"""
-    return render_template('admin_login.html')
-
-@app.route('/admin/login', methods=['POST'])
-@csrf.exempt
-def admin_login():
-    """Handle admin authentication"""
-    try:
-        data = request.get_json()
-        username = data.get('username', '').strip()
-        password = data.get('password', '').strip()
-
-        if not username or not password:
-            return jsonify({
-                'success': False,
-                'error': 'Username and password required'
-            })
-
-        # Check admin credentials
-        if username in ADMIN_CREDENTIALS and check_password_hash(ADMIN_CREDENTIALS[username], password):
-            session['admin_authenticated'] = True
-            session['admin_username'] = username
-            return jsonify({
-                'success': True,
-                'message': 'Admin access granted'
-            })
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['admin_logged_in'] = True
+            flash('Admin login successful!', 'success')
+            return redirect(url_for('admin_dashboard'))
         else:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid admin credentials'
-            })
+            flash('Invalid Admin Credentials.', 'error')
 
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': 'Authentication error occurred'
-        })
+    return render_template('Admin_login.html')
 
-@app.route('/admin/logout', methods=['POST'])
-@csrf.exempt
+@app.route('/admin/logout')
 def admin_logout():
-    """Handle admin logout"""
-    session.pop('admin_authenticated', None)
-    session.pop('admin_username', None)
-    return jsonify({'success': True})
+    session.pop('admin_logged_in', None)
+    flash('Admin logged out successfully.', 'success')
+    return redirect(url_for('admin_login_page'))
+
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
-    """Admin dashboard page"""
-    if not session.get('admin_authenticated'):
+    if not session.get('admin_logged_in'):
+        flash('Please log in to access the admin panel.', 'error')
         return redirect(url_for('admin_login_page'))
-    from flask_wtf.csrf import generate_csrf
-    return render_template('admin_dashboard.html', csrf_token=generate_csrf)
 
-# Admin API Routes
-@app.route('/admin/api/statistics')
-def admin_statistics():
-    """Get statistics for admin dashboard"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        stats = {
-            'users': len(admin_db.get_users()),
-            'usernames': len(admin_db.get_usernames()),
-            'utrs': len(admin_db.get_utrs())
-        }
-        return jsonify(stats)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Users CRUD (Replace Access Codes)
-@app.route('/admin/api/users')
-def admin_get_users():
-    """Get all users"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-    return jsonify(admin_db.get_users())
-
-@app.route('/admin/api/users/<int:user_id>', methods=['DELETE'])
-@csrf.exempt
-def admin_delete_user(user_id):
-    """Delete user"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        admin_db.delete_user(user_id)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-# Usernames CRUD (Updated)
-@app.route('/admin/api/usernames')
-def admin_get_usernames():
-    """Get all demo usernames"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-    return jsonify(admin_db.get_usernames())
-
-@app.route('/admin/api/usernames/<int:user_id>')
-def admin_get_username(user_id):
-    """Get single username"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
+    # Data fetch karke template ko bhejna
+    stats = admin_db.get_statistics()
+    users = admin_db.get_users()
     usernames = admin_db.get_usernames()
-    for username in usernames:
-        if username['id'] == user_id:
-            return jsonify(username)
-    return jsonify({'error': 'Not found'}), 404
+    utrs = admin_db.get_utrs()
+    custom_message = admin_db.get_custom_message()
+    searched = admin_db.get_searched_usernames()
+    
+    return render_template('admin_dashboard.html', 
+                           stats=stats, 
+                           users=users, 
+                           usernames=usernames, 
+                           utrs=utrs, 
+                           custom_message=custom_message,
+                           searched=searched)
 
-@app.route('/admin/api/usernames', methods=['POST'])
-@csrf.exempt
+
+# --- API/Action Routes for Admin Dashboard (Used by admin.js) ---
+
+@app.route('/admin/users/create', methods=['POST'])
+def admin_create_user():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json()
+    name = data.get('name')
+    if not name: return jsonify({'success': False, 'error': 'Name is required'}), 400
+    new_user = admin_db.create_user(name)
+    return jsonify({'success': True, 'user': new_user})
+
+@app.route('/admin/users/delete', methods=['POST'])
+def admin_delete_user():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    user_id = request.get_json().get('user_id')
+    admin_db.delete_user(user_id)
+    return jsonify({'success': True})
+
+@app.route('/admin/users/update_balance', methods=['POST'])
+def admin_update_balance():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json()
+    hash_code = data.get('hash_code')
+    new_balance = data.get('new_balance')
+    if not hash_code or new_balance is None: return jsonify({'success': False, 'error': 'Missing data'}), 400
+    if admin_db.update_user_balance(hash_code, new_balance):
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'User not found'}), 404
+
+@app.route('/admin/users/grant_unlimited', methods=['POST'])
+def admin_grant_unlimited():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    hash_code = request.get_json().get('hash_code')
+    # Grant lifetime access (None days)
+    if admin_db.grant_unlimited_access(hash_code, access_days=None):
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'User not found or update failed'}), 404
+
+
+@app.route('/admin/data/add_username', methods=['POST'])
 def admin_add_username():
-    """Add new demo username"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json()
+    username = data.get('username')
+    mobile_number = data.get('mobile_number')
+    mobile_details = data.get('mobile_details')
+    if not all([username, mobile_number, mobile_details]): return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+    new_user = admin_db.add_username(username, mobile_number, mobile_details)
+    return jsonify({'success': True, 'username': new_user['username']})
 
+@app.route('/admin/data/update_username', methods=['POST'])
+def admin_update_username():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json()
+    username_id = data.get('username_id')
+    username = data.get('username')
+    mobile_number = data.get('mobile_number')
+    mobile_details = data.get('mobile_details')
+    if not all([username_id, username, mobile_number, mobile_details]): return jsonify({'success': False, 'error': 'Missing required fields'}), 400
     try:
-        data = request.get_json()
-        username = data.get('username', '').strip()
-        mobile_number = data.get('mobile_number', '').strip()
-        mobile_details = data.get('mobile_details', '').strip()
-
-        if not username or not mobile_number:
-            return jsonify({'success': False, 'error': 'Username and mobile number required'})
-
-        new_user = admin_db.add_username(username, mobile_number, mobile_details)
-        return jsonify({'success': True, 'data': new_user})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/admin/api/usernames/<int:user_id>', methods=['PUT'])
-@csrf.exempt
-def admin_update_username(user_id):
-    """Update demo username"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        data = request.get_json()
-        username = data.get('username', '').strip()
-        mobile_number = data.get('mobile_number', '').strip()
-        mobile_details = data.get('mobile_details', '').strip()
-
-        admin_db.update_username(user_id, username, mobile_number, mobile_details)
+        admin_db.update_username(username_id, username, mobile_number, mobile_details)
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/admin/api/usernames/<int:user_id>', methods=['DELETE'])
-@csrf.exempt
-def admin_delete_username(user_id):
-    """Delete demo username"""
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
+@app.route('/admin/data/delete_username', methods=['POST'])
+def admin_delete_username():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    username_id = request.get_json().get('username_id')
+    if not username_id: return jsonify({'success': False, 'error': 'Missing ID'}), 400
+    admin_db.delete_username(username_id)
+    return jsonify({'success': True})
 
-    try:
-        admin_db.delete_username(user_id)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+@app.route('/admin/utr/add', methods=['POST'])
+def admin_add_utr():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json()
+    utr = data.get('utr')
+    description = data.get('description')
+    if not utr or not description: return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+    new_utr = admin_db.add_utr(utr, description)
+    return jsonify({'success': True, 'utr': new_utr['utr']})
 
-# UTRs CRUD (Keep existing)
-@app.route('/admin/api/utrs')
-def admin_get_utrs():
-    """Get all UTRs"""
-    # Remaining part of admin_get_utrs and subsequent admin functions would follow here...
-    
-    # Check authentication
-    if not session.get('admin_authenticated'):
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    # (Assuming admin_db.get_utrs() exists)
-    return jsonify(admin_db.get_utrs()) 
+@app.route('/admin/utr/delete', methods=['POST'])
+def admin_delete_utr():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    utr_id = request.get_json().get('utr_id')
+    if not utr_id: return jsonify({'success': False, 'error': 'Missing ID'}), 400
+    admin_db.delete_utr(utr_id)
+    return jsonify({'success': True})
 
-# The rest of the admin routes are assumed to be complete in your original file.
+@app.route('/admin/settings/get_message', methods=['GET'])
+def admin_get_message():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    message = admin_db.get_custom_message()
+    return jsonify({'success': True, 'message': message})
 
-# --- Koyeb/Local Host Fix ---
-# *CRUCIAL* FIX FOR KOYEB DEPLOYMENT
-port = int(os.environ.get('PORT', 8000)) # Use PORT env var, default to 8000
+@app.route('/admin/settings/update_message', methods=['POST'])
+def admin_update_message():
+    if not session.get('admin_logged_in'): return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    message = request.get_json().get('message')
+    if message is None: return jsonify({'success': False, 'error': 'Message field is missing'}), 400
+    admin_db.update_custom_message(message)
+    return jsonify({'success': True})
+
 
 if __name__ == '__main__':
-    # Binds to 0.0.0.0 (all interfaces) and the correct port (8000 on Koyeb)
-    app.run(host='0.0.0.0', port=port, debug=True) 
-# -----------------------------
+    # Initialize the database file if it doesn't exist
+    print("Initializing Database...")
+    admin_db.init_database()
+    print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
+    
+    # Start the Flask app
+    app.run(debug=True, host='0.0.0.0', port=5000)
