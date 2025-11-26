@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-# CRITICAL FIX 1: timedelta import karna zaroori hai 'apply_coupon' function ke liye
 from datetime import datetime, timedelta 
 import os
 import time
@@ -12,7 +11,15 @@ except ImportError:
     exit()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) # Production ke liye strong secret key use karein
+app.secret_key = os.urandom(24) 
+
+# --- CRITICAL DEPLOYMENT FIX: DATABASE INITIALIZATION MOVED ---
+# Yeh code ab globally run hoga jab Gunicorn App.py ko import karega.
+print("Initializing Database...")
+admin_db.init_database()
+print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
+# --- END CRITICAL FIX ---
+
 
 # Configuration
 SEARCH_COST = 1 # Per search cost
@@ -113,7 +120,7 @@ def apply_coupon():
 @app.route('/search', methods=['POST'])
 def search_username():
     if 'user_hash' not in session:
-        return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     user_hash = session['user_hash']
     username = request.json.get('username', '').strip().replace('@', '')
@@ -325,12 +332,8 @@ def admin_update_message():
     return jsonify({'success': True})
 
 
+# Yeh block ab sirf local testing ke liye hai.
 if __name__ == '__main__':
-    # Initialize the database file if it doesn't exist
-    print("Initializing Database...")
-    admin_db.init_database()
-    print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
-
-    # CRITICAL FIX 2: app.run() line ko hata diya gaya hai taki Gunicorn/WSGI server isse handle kar sake.
-    # app.run(debug=True, host='0.0.0.0', port=5000)
+    # Is block mein ab kuch nahi hai, kyunki initialization upar ja chuka hai.
+    pass
     
