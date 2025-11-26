@@ -5,7 +5,9 @@ import uuid
 import time
 
 # --- CONFIGURATION ---
-DB_FILE = 'data/admin_data.json'
+# CRITICAL DEPLOYMENT FIX: Database file location changed to /tmp/ 
+# Yeh directory hosting environments mein hamesha writeable hoti hai.
+DB_FILE = '/tmp/admin_data.json'
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD = 'admin123' 
 
@@ -27,7 +29,8 @@ class AdminDB:
         self._data = self._load_data()
 
     def _load_data(self):
-        # Ensure the data directory exists
+        # Ensure the parent directory (which is /tmp/) exists.
+        # Although /tmp usually exists, this is good practice.
         os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
         
         if not os.path.exists(DB_FILE):
