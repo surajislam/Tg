@@ -31,7 +31,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated Background */
         body::before {
             content: '';
             position: fixed;
@@ -505,10 +504,29 @@
                     </button>
                 </div>
             </div>
-        </div>
+
+            <div class="search-section" id="coupon-section" style="margin-top: 30px;">
+                <div class="section-title">
+                    <span class="section-icon">🎁</span>
+                    <span>Apply Coupon Code</span>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">
+                        <span>🔑</span>
+                        <span>Enter Code for Free Access</span>
+                    </label>
+                    <input type="text" id="coupon-input" class="search-input" placeholder="Enter coupon code (e.g., SBSIMPLE00)" autocomplete="off">
+                </div>
+
+                <button onclick="applyCoupon()" class="search-btn" id="coupon-btn" style="background: linear-gradient(135deg, #7b68ee 0%, #a05193 100%);">
+                    🎁 Apply Code
+                </button>
+                <div id="coupon-message" class="success-message" style="display: none; margin-top: 10px;"></div>
+            </div>
+            </div>
 
         <div class="content">
-            <!-- Username Search Section -->
             <div class="search-section">
                 <div class="section-title">
                     <span class="section-icon">🔍</span>
@@ -530,11 +548,9 @@
             </div>
         </div>
 
-        <!-- Results Section -->
         <div id="results" style="display: none;"></div>
     </div>
 
-    <!-- API Information Modal -->
     <div id="apiModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1001; backdrop-filter: blur(5px);">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 46, 0.95); border: 1px solid rgba(123, 104, 238, 0.3); border-radius: 20px; padding: 30px; max-width: 500px; width: 95%; backdrop-filter: blur(20px);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
@@ -577,8 +593,166 @@
         </div>
     </div>
 
-    <!-- Deposit Modal -->
     <div id="depositModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 46, 0.95); border: 1px solid rgba(64, 224, 208, 0.3); border-radius: 20px; padding: 30px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; backdrop-filter: blur(20px);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h
+                <h3 style="color: #40e0d0; font-size: 20px; font-weight: 700;">💳 Add Balance</h3>
+                <button onclick="closeDepositModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; padding: 5px;">×</button>
+            </div>
+
+            <div style="color: #e2e8f0; margin-bottom: 20px; background: rgba(64, 224, 208, 0.1); border: 1px solid rgba(64, 224, 208, 0.3); border-radius: 12px; padding: 15px; text-align: center;">
+                Minimum Deposit: ₹60 (2 Searches)
+            </div>
+
+            <div style="background: rgba(15, 15, 35, 0.8); border-radius: 15px; padding: 20px; margin-bottom: 20px;">
+                <div style="color: #40e0d0; font-weight: 700; font-size: 18px; margin-bottom: 15px; text-align: center;">Payment Information</div>
+                
+                <div style="margin-bottom: 10px;">
+                    <span style="color: #94a3b8; font-weight: 600;">UPI ID:</span> 
+                    <span id="upi-id" style="color: #e2e8f0; font-family: 'Monaco', monospace;">hackingteamx@paytm</span>
+                    <button onclick="copyUpiId()" style="background: #7b68ee; color: white; border: none; border-radius: 5px; padding: 5px 10px; margin-left: 10px; cursor: pointer;">Copy</button>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <span style="color: #94a3b8; font-weight: 600;">Name:</span> 
+                    <span style="color: #e2e8f0;">HACKINGTEAMX</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <div style="color: #40e0d0; font-weight: 700; margin-bottom: 10px;">Select Amount:</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;">
+                    <button class="amount-btn" data-amount="60">₹60 (2 S)</button>
+                    <button class="amount-btn" data-amount="90">₹90 (3 S)</button>
+                    <button class="amount-btn" data-amount="120">₹120 (4 S)</button>
+                    <button class="amount-btn" data-amount="900">₹900 (30 S)</button>
+                    <button class="amount-btn" data-amount="1800">₹1800 (60 S)</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">
+                    <span>💳</span>
+                    <span>Enter UTR/Reference Number</span>
+                </label>
+                <input type="text" id="utr-input" class="search-input" placeholder="Enter 12-digit UTR or Reference Number" autocomplete="off" maxlength="12">
+            </div>
+
+            <button onclick="processDeposit()" id="deposit-btn" class="search-btn" style="background: linear-gradient(135deg, #48cc8c 0%, #34d399 100%);">
+                ➕ Verify & Add Balance
+            </button>
+            <div id="deposit-message" class="error-message" style="display: none;"></div>
+
+            <div style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 20px;">
+                Note: UTR verification is manual. It may take 1-5 minutes for balance to update.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder for functions defined by user's original HTML/JS
+        function openDepositModal() {
+            document.getElementById('depositModal').style.display = 'block';
+        }
+
+        function closeDepositModal() {
+            document.getElementById('depositModal').style.display = 'none';
+        }
+
+        function openApiModal() {
+            document.getElementById('apiModal').style.display = 'block';
+        }
+
+        function closeApiModal() {
+            document.getElementById('apiModal').style.display = 'none';
+        }
+
+        function redirectToWhatsApp() {
+            window.open('https://t.me/hackingteamx', '_blank'); // Using Telegram link instead of WhatsApp
+        }
+        
+        // --- NEW JAVASCRIPT LOGIC ---
+
+        // Function to apply the coupon code (Crucial part)
+        function applyCoupon() {
+            const couponCode = document.getElementById('coupon-input').value.trim();
+            const couponBtn = document.getElementById('coupon-btn');
+            const couponMessage = document.getElementById('coupon-message');
+
+            if (!couponCode) {
+                couponMessage.style.display = 'block';
+                couponMessage.className = 'error-message';
+                couponMessage.innerHTML = 'Kripya coupon code daalein.';
+                return;
+            }
+
+            // Button ko disabled karna aur loading state set karna
+            couponBtn.disabled = true;
+            couponBtn.innerHTML = 'Applying...';
+            couponMessage.style.display = 'none';
+
+            fetch('/apply_coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code: couponCode })
+            })
+            .then(response => response.json())
+            .then(data => {
+                couponBtn.disabled = false;
+                couponBtn.innerHTML = '🎁 Apply Code';
+
+                couponMessage.style.display = 'block';
+                
+                if (data.success) {
+                    couponMessage.className = 'success-message';
+                    couponMessage.innerHTML = data.message + ' Page refresh ho raha hai...';
+                    // Success hone par, page reload karein taki balance/access update ho jaaye
+                    setTimeout(() => {
+                        window.location.reload(); 
+                    }, 1500); 
+                } else {
+                    couponMessage.className = 'error-message';
+                    couponMessage.innerHTML = data.message;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                couponBtn.disabled = false;
+                couponBtn.innerHTML = '🎁 Apply Code';
+                couponMessage.style.display = 'block';
+                couponMessage.className = 'error-message';
+                couponMessage.innerHTML = 'Error applying coupon. Please try again.';
+            });
+        }
+        
+        // --- EXISTING PLACEHOLDER FUNCTIONS (need full implementation) ---
+        function searchUsername() {
+            // Placeholder: Needs full implementation based on your server logic
+            console.log("Searching username...");
+        }
+
+        function processDeposit() {
+            // Placeholder: Needs full implementation based on your server logic
+            console.log("Processing deposit...");
+        }
+
+        function copyUpiId() {
+             // Implementation for copying UPI ID
+             const upiId = document.getElementById('upi-id').textContent;
+             navigator.clipboard.writeText(upiId).then(() => {
+                alert("UPI ID copied: " + upiId);
+             });
+        }
+
+        document.querySelectorAll('.amount-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.amount-btn').forEach(btn => btn.style.backgroundColor = '');
+                this.style.backgroundColor = '#40e0d0';
+            });
+        });
+        
+    </script>
+</body>
+</html>
