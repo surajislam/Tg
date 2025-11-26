@@ -7,8 +7,12 @@ import time
 # --- CONFIGURATION ---
 # CRITICAL FIX (MANDATORY FOR DEPLOYMENT): Database file location must be in the writeable /tmp/ directory.
 DB_FILE = '/tmp/admin_data.json'
-ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD = 'admin123' 
+
+# USER NOTE: Admin credentials are now taken from environment variables.
+# If environment variables are NOT set, these placeholders will be used.
+# FOR SECURITY, please set ADMIN_USERNAME and ADMIN_PASSWORD in your deployment settings!
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin_change_me') 
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'password_123')
 
 # Example coupon codes (User-facing)
 COUPON_CODES = {
