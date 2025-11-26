@@ -1,6 +1,6 @@
-# App.py (Complete Final Code)
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-from datetime import datetime
+# CRITICAL FIX 1: timedelta import karna zaroori hai 'apply_coupon' function ke liye
+from datetime import datetime, timedelta 
 import os
 import time
 
@@ -24,9 +24,9 @@ def index():
     if request.method == 'POST':
         # Hash Code Login Logic
         user_hash = request.form.get('user_hash', '').strip()
-        
+
         user = admin_db.get_user_by_hash(user_hash)
-        
+
         if user:
             session['user_hash'] = user_hash
             flash(f'Welcome back, {user["name"]}! Your balance is ₹{user["balance"]}.', 'success')
@@ -42,7 +42,7 @@ def index():
              session.pop('user_hash', None)
              flash('Your session expired or hash is invalid.', 'error')
              return redirect(url_for('index'))
-             
+
     # Prepare message for the user panel
     custom_message = admin_db.get_custom_message()
 
@@ -60,14 +60,14 @@ def check_utr():
         return jsonify({'success': False, 'message': 'Session expired. Please log in again.'})
 
     utr = request.json.get('utr', '').strip()
-    
+
     if not utr:
         return jsonify({'success': False, 'message': 'Please enter a UTR number.'})
-        
+
     valid_utrs = admin_db.get_utrs()
-    
+
     is_valid = any(item['utr'] == utr for item in valid_utrs)
-    
+
     if is_valid:
         # In a real system, you would add balance here and delete the UTR.
         # For this demo, we just return success.
@@ -86,10 +86,10 @@ def apply_coupon():
 
     if coupon_code in COUPON_CODES:
         coupon_data = COUPON_CODES[coupon_code]
-        
+
         if coupon_data['is_active']:
             access_days = coupon_data['access_days']
-            
+
             # Grant unlimited access logic in admin_data.py
             if admin_db.grant_unlimited_access(user_hash, access_days):
                 if access_days is None:
@@ -97,7 +97,7 @@ def apply_coupon():
                 else:
                     expiry_dt = datetime.now() + timedelta(days=access_days)
                     expiry_msg = expiry_dt.strftime('%d %b %Y')
-                    
+
                 return jsonify({
                     'success': True, 
                     'message': f'Coupon "{coupon_code}" applied successfully! You now have Unlimited access until {expiry_msg}.'
@@ -114,22 +114,22 @@ def apply_coupon():
 def search_username():
     if 'user_hash' not in session:
         return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
-    
+
     user_hash = session['user_hash']
     username = request.json.get('username', '').strip().replace('@', '')
 
     if not username:
         return jsonify({'success': False, 'error': 'Please enter a Telegram username.'})
-        
+
     user = admin_db.get_user_by_hash(user_hash)
-    
+
     if not user:
         session.pop('user_hash', None)
         return jsonify({'success': False, 'error': 'Invalid user session. Please re-login.'}), 401
-        
+
     # Check Unlimited status first
     is_unlimited = admin_db.is_unlimited_active(user)
-    
+
     # 1. Deduct Balance (Only if not unlimited)
     if not is_unlimited:
         if not admin_db.deduct_balance(user_hash, SEARCH_COST):
@@ -137,12 +137,12 @@ def search_username():
 
     # 2. Search for the username in the demo database
     match = admin_db.find_demo_username(username)
-    
+
     if match:
         # Found
         # Get the latest balance after deduction for the response
         updated_user = admin_db.get_user_by_hash(user_hash)
-        
+
         return jsonify({
             'success': True,
             'found': True,
@@ -154,10 +154,10 @@ def search_username():
         # Not Found
         # 3. Log the search and return custom message
         admin_db.log_searched_username(username, user_hash)
-        
+
         # Get the latest balance after deduction
         updated_user = admin_db.get_user_by_hash(user_hash)
-        
+
         return jsonify({
             'success': True,
             'found': False,
@@ -174,7 +174,7 @@ def admin_login_page():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
+
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['admin_logged_in'] = True
             flash('Admin login successful!', 'success')
@@ -204,7 +204,7 @@ def admin_dashboard():
     utrs = admin_db.get_utrs()
     custom_message = admin_db.get_custom_message()
     searched = admin_db.get_searched_usernames()
-    
+
     return render_template('admin_dashboard.html', 
                            stats=stats, 
                            users=users, 
@@ -239,6 +239,11 @@ def admin_update_balance():
     hash_code = data.get('hash_code')
     new_balance = data.get('new_balance')
     if not hash_code or new_balance is None: return jsonify({'success': False, 'error': 'Missing data'}), 400
+    try:
+        new_balance = int(new_balance)
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Balance must be an integer'}), 400
+        
     if admin_db.update_user_balance(hash_code, new_balance):
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'User not found'}), 404
@@ -262,7 +267,7 @@ def admin_add_username():
     mobile_details = data.get('mobile_details')
     if not all([username, mobile_number, mobile_details]): return jsonify({'success': False, 'error': 'Missing required fields'}), 400
     new_user = admin_db.add_username(username, mobile_number, mobile_details)
-    return jsonify({'success': True, 'username': new_user['username']})
+    return jsonify({'success': True, 'username': new_user})
 
 @app.route('/admin/data/update_username', methods=['POST'])
 def admin_update_username():
@@ -295,7 +300,7 @@ def admin_add_utr():
     description = data.get('description')
     if not utr or not description: return jsonify({'success': False, 'error': 'Missing required fields'}), 400
     new_utr = admin_db.add_utr(utr, description)
-    return jsonify({'success': True, 'utr': new_utr['utr']})
+    return jsonify({'success': True, 'utr': new_utr})
 
 @app.route('/admin/utr/delete', methods=['POST'])
 def admin_delete_utr():
@@ -325,6 +330,7 @@ if __name__ == '__main__':
     print("Initializing Database...")
     admin_db.init_database()
     print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
+
+    # CRITICAL FIX 2: app.run() line ko hata diya gaya hai taki Gunicorn/WSGI server isse handle kar sake.
+    # app.run(debug=True, host='0.0.0.0', port=5000)
     
-    # Start the Flask app
-    app.run(debug=True, host='0.0.0.0', port=5000)
