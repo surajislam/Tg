@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+# Fix 1: timedelta import (coupon expiry ke liye)
 from datetime import datetime, timedelta 
 import os
 import time
@@ -11,10 +12,11 @@ except ImportError:
     exit()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) 
+# Production ke liye secret key set karein
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
 
-# --- CRITICAL DEPLOYMENT FIX: DATABASE INITIALIZATION MOVED ---
-# Yeh code ab globally run hoga jab Gunicorn App.py ko import karega.
+# --- CRITICAL FIX 2: DATABASE INITIALIZATION MOVED GLOBALLY ---
+# Gunicorn is block ko zaroor run karega jab woh app ko import karega.
 print("Initializing Database...")
 admin_db.init_database()
 print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
@@ -332,8 +334,8 @@ def admin_update_message():
     return jsonify({'success': True})
 
 
-# Yeh block ab sirf local testing ke liye hai.
 if __name__ == '__main__':
-    # Is block mein ab kuch nahi hai, kyunki initialization upar ja chuka hai.
+    # Yeh block sirf local testing ke liye chhod diya gaya hai.
+    # Deployment ke liye zaruri initialization code upar move kar diya gaya hai.
     pass
     
