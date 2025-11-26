@@ -66,7 +66,7 @@ class TelegramUserSearch:
         """
         Demo search functionality
         """
-        self.bot_token = bot_token or os.getenv('TELEGRAM_BOT_TOKEN')
+        self.bot_token = bot_token or os.getenv('8528924905:AAEQS3DGCubbX8cs-JGloy5AhDU-MxA7mtI')
 
     def search_public_info(self, username):
         """
