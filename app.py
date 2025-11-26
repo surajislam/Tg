@@ -14,13 +14,12 @@ app = Flask(__name__)
 # SECRET_KEY ko simple rakhte hain, jaisa aapne shuru mein dekha tha
 app.secret_key = os.urandom(24)
 
-# --- CRITICAL FIX 2: DATABASE INITIALIZATION MOVED GLOBALLY ---
+# --- DATABASE INITIALIZATION ---
 # Gunicorn is block ko zaroor run karega jab woh app ko import karega.
-# Yeh woh jagah hai jahaan ab file creation/loading successfully hogi.
 print("Initializing Database...")
 admin_db.init_database()
 print(f"Admin Username: {ADMIN_USERNAME}, Admin Password: {ADMIN_PASSWORD}")
-# --- END CRITICAL FIX ---
+# --- END DATABASE INITIALIZATION ---
 
 
 # Configuration
