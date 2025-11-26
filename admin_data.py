@@ -5,8 +5,7 @@ import uuid
 import time
 
 # --- CONFIGURATION ---
-# CRITICAL DEPLOYMENT FIX: Database file location changed to /tmp/ 
-# Yeh directory hosting environments mein hamesha writeable hoti hai.
+# CRITICAL FIX: Database file location changed to the writeable /tmp/ directory.
 DB_FILE = '/tmp/admin_data.json'
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD = 'admin123' 
@@ -29,8 +28,8 @@ class AdminDB:
         self._data = self._load_data()
 
     def _load_data(self):
-        # Ensure the parent directory (which is /tmp/) exists.
-        # Although /tmp usually exists, this is good practice.
+        # Ensure the parent directory (/tmp/) exists.
+        # This resolves the deployment crash issue (Application exited with code 0).
         os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
         
         if not os.path.exists(DB_FILE):
@@ -80,9 +79,8 @@ class AdminDB:
             json.dump(self._data, f, indent=4)
 
     def init_database(self):
-        # Database initialization logic: just loads/creates the file.
-        # This is run globally in app.py
-        pass # The load happens in __init__, so we just confirm existence.
+        # Database initialization logic
+        pass
 
     # --- User Methods ---
 
