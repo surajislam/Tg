@@ -70,7 +70,8 @@ class AdminDB:
             'utrs': [], # UTRs for payment verification
             'settings': {
                 'custom_message': 'No information found for this user. Please try again or check payment details.'
-            },
+            }
+            ,
             'searched_usernames': [] # Log of failed searches
         }
 
